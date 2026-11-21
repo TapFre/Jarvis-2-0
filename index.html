@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#04060c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="JARVIS">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22JARVIS%20%E2%80%94%20%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D0%B9%20%D0%B0%D1%81%D1%81%D0%B8%D1%81%D1%82%D0%B5%D0%BD%D1%82%22%2C%22short_name%22%3A%22JARVIS%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait%22%2C%22background_color%22%3A%22%2304060c%22%2C%22theme_color%22%3A%22%2304060c%22%7D">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%2064%2064%27%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2732%27%20r%3D%2730%27%20fill%3D%27%2304060c%27%2F%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2732%27%20r%3D%2714%27%20fill%3D%27%2322d3ee%27%2F%3E%3Ccircle%20cx%3D%2732%27%20cy%3D%2732%27%20r%3D%2722%27%20fill%3D%27none%27%20stroke%3D%27%2322d3ee%27%20stroke-width%3D%273%27%20stroke-dasharray%3D%278%206%27%2F%3E%3C%2Fsvg%3E">
+<title>JARVIS — личный ассистент</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#04060c;--pan:#0a1220;--pan2:#0d1728;--ink:#dbeafe;--mut:#64748b;--cy:#22d3ee;--bl:#3b82f6;--vi:#8b5cf6;--ok:#34d399;--warn:#fbbf24;--err:#f87171;--line:rgba(56,189,248,.22);--line2:rgba(56,189,248,.4);--r:16px}
+html,body{margin:0;padding:0;height:100%}
+body{background:radial-gradient(1200px 700px at 50% -10%,rgba(34,211,238,.09),transparent 60%),radial-gradient(900px 600px at 90% 110%,rgba(139,92,246,.08),transparent 60%),var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+#app{height:100dvh;display:flex;flex-direction:column}
+button{font:inherit;color:inherit;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+/* Шапка */
+.top{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(5,9,18,.75);backdrop-filter:blur(10px);z-index:5}
+.logo{font-weight:800;letter-spacing:.24em;font-size:15px;color:var(--cy);text-shadow:0 0 14px rgba(34,211,238,.55)}
+.logo small{display:block;font-size:9px;letter-spacing:.3em;color:var(--mut);font-weight:600}
+.clockbox{margin-left:auto;text-align:right;line-height:1.15}
+.clockbox b{display:block;font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;color:#e0f2fe}
+.clockbox span{font-size:11px;color:var(--mut)}
+.wx{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:6px 12px;background:rgba(13,23,40,.6);cursor:pointer;font-size:13px;color:#bae6fd;min-height:34px}
+.wx:hover{border-color:var(--line2)}
+.wx .ic{font-size:15px}
+.icb{border:1px solid var(--line);background:rgba(13,23,40,.6);border-radius:11px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#bae6fd;flex:none}
+.icb:hover{border-color:var(--line2)}
+.icb svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round}
+/* Сцена со сферой */
+.main{flex:1;overflow-y:auto;padding:12px 14px 14px;display:flex;flex-direction:column;gap:14px}
+.main>*{width:100%;max-width:760px;margin-left:auto;margin-right:auto}
+.stage{position:relative;display:flex;flex-direction:column;align-items:center;padding:8px 0 2px;flex:none}
+.rings{position:absolute;top:0;left:0;right:0;height:250px;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.rings i{display:none;position:absolute;width:210px;height:210px;border-radius:50%;border:1.5px solid rgba(34,211,238,.55)}
+.stage[data-state=listening] .rings i{display:block;animation:ripple 2s ease-out infinite}
+.stage[data-state=listening] .rings i:nth-child(2){animation-delay:.66s}
+.stage[data-state=listening] .rings i:nth-child(3){animation-delay:1.32s}
+@keyframes ripple{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.75);opacity:0}}
+.orb{width:212px;height:212px;border-radius:50%;position:relative;border:0;background:transparent;cursor:pointer;flex:none}
+.orb::before{content:'';position:absolute;inset:8px;border-radius:50%;background:conic-gradient(from 0deg,rgba(34,211,238,0) 0 68%,rgba(34,211,238,.95) 84%,rgba(34,211,238,0) 100%);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 2.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 3.5px),#000 calc(100% - 2.5px));animation:spin 12s linear infinite}
+.orb::after{content:'';position:absolute;inset:-9px;border-radius:50%;border:1px dashed rgba(34,211,238,.32);animation:spin 36s linear infinite reverse}
+@keyframes spin{to{transform:rotate(360deg)}}
+.core{position:absolute;inset:24px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#cffafe 0%,#67e8f9 18%,#22d3ee 42%,#0e7490 72%,#083344 95%);box-shadow:0 0 46px rgba(34,211,238,.4),inset 0 0 34px rgba(255,255,255,.16);animation:breathe 4.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+.stage[data-state=listening] .core{animation:breathe 1.2s ease-in-out infinite;box-shadow:0 0 64px rgba(34,211,238,.65),inset 0 0 34px rgba(255,255,255,.2)}
+.stage[data-state=speaking] .core{background:radial-gradient(circle at 36% 32%,#ede9fe 0%,#c4b5fd 18%,#8b5cf6 46%,#5b21b6 76%,#2e1065 96%);box-shadow:0 0 60px rgba(139,92,246,.55),inset 0 0 34px rgba(255,255,255,.18);animation:breathe 1.4s ease-in-out infinite}
+.stage[data-state=thinking] .core{animation:none;opacity:.85}
+.stage[data-state=thinking] .orb::before{animation-duration:1.6s}
+.statusline{color:#93c5fd;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;margin-top:9px;min-height:17px}
+.live{min-height:22px;color:#e0f2fe;font-size:16px;text-align:center;margin-top:3px;font-weight:600}
+.live:empty{display:none}
+/* Чат */
+.chathold{display:flex;flex-direction:column;gap:8px;overflow-y:auto;flex:none;max-height:36vh;scrollbar-width:thin}
+.msg{max-width:88%;padding:9px 13px;border-radius:14px;font-size:15px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word}
+.msg .who{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
+.msg.usr{align-self:flex-end;background:rgba(59,130,246,.16);border:1px solid rgba(59,130,246,.35);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:rgba(34,211,238,.07);border:1px solid rgba(34,211,238,.3);border-bottom-left-radius:4px}
+.msg.err{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+/* Плитки устройств */
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:10px}
+.tile{background:rgba(13,23,40,.65);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;cursor:pointer;min-height:64px;text-align:left}
+.tile:hover{border-color:var(--line2)}
+.tile.on{border-color:rgba(34,211,238,.65);box-shadow:0 0 16px rgba(34,211,238,.22);background:rgba(8,47,73,.5)}
+.tile .row{display:flex;align-items:center;gap:7px}
+.dot{width:9px;height:9px;border-radius:50%;background:#334155;flex:none}
+.tile.on .dot{background:var(--ok);box-shadow:0 0 8px rgba(52,211,153,.8)}
+.tile .nm{font-size:14px;font-weight:600;color:#e0f2fe}
+.tile .rm{font-size:11px;color:var(--mut);margin-top:3px;letter-spacing:.06em}
+.sect{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin:2px 0 -4px}
+/* Таймеры */
+.timers{display:flex;gap:8px;flex-wrap:wrap}
+.tchip{background:rgba(13,23,40,.7);border:1px solid rgba(251,191,36,.45);border-radius:12px;padding:8px 12px;font-size:13.5px;display:flex;gap:8px;align-items:center}
+.tchip b{font-variant-numeric:tabular-nums;color:var(--warn);font-size:15px}
+.tchip .x{border:0;background:none;color:var(--mut);cursor:pointer;font-size:14px;padding:2px 4px}
+.tchip .x:hover{color:var(--err)}
+/* Док */
+.dock{border-top:1px solid var(--line);background:rgba(5,9,18,.88);backdrop-filter:blur(10px);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:5}
+.dock form{display:flex;gap:8px;max-width:760px;margin:0 auto}
+.dock input{flex:1;min-width:0;background:#0b1220;border:1px solid var(--line);border-radius:999px;padding:11px 18px;color:#e0f2fe;font-size:16px;min-height:48px;outline:none}
+.dock input:focus{border-color:var(--line2);box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+.snd{width:48px;height:48px;border-radius:50%;border:1px solid var(--line2);background:rgba(34,211,238,.14);color:var(--cy);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
+.snd:hover{background:rgba(34,211,238,.28)}
+.snd svg{width:20px;height:20px;fill:currentColor}
+/* Модальные окна */
+.mask{position:fixed;inset:0;background:rgba(2,4,10,.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.mask.open{display:flex}
+.modal{background:#0a1220;border:1px solid var(--line);border-radius:20px 20px 0 0;max-width:640px;width:100%;max-height:88dvh;overflow-y:auto;padding:16px 18px calc(18px + env(safe-area-inset-bottom))}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:4px}
+.mhead h3{margin:0;font-size:16px;letter-spacing:.14em;text-transform:uppercase;color:#bae6fd}
+/* Настройки */
+.set{display:flex;flex-direction:column;gap:14px;margin-top:10px}
+.sbox{background:rgba(13,23,40,.5);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.sbox h4{margin:0 0 8px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#93c5fd}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;font-size:14px}
+.srow label{flex:1;color:#cbd5e1}
+.srow select,.srow input[type=text],.srow input[type=password],.srow input[type=url],.in{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:#e0f2fe;font:inherit;font-size:14px;min-height:40px;outline:none;width:100%}
+.srow select:focus,.in:focus{border-color:var(--line2)}
+.sw{position:relative;width:48px;height:28px;flex:none}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw i{position:absolute;inset:0;border-radius:999px;background:#1e293b;border:1px solid var(--line);transition:.2s;cursor:pointer}
+.sw i::before{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#64748b;top:3px;left:3px;transition:.2s}
+.sw input:checked+i{background:rgba(34,211,238,.3);border-color:var(--cy)}
+.sw input:checked+i::before{background:var(--cy);transform:translateX(20px);box-shadow:0 0 8px rgba(34,211,238,.7)}
+input[type=range]{accent-color:var(--cy);width:130px}
+.drow{border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-top:8px;background:rgba(8,14,26,.6)}
+.drow .t{display:flex;align-items:center;gap:8px}
+.drow .t b{flex:1;font-size:14px;color:#e0f2fe}
+.drow .meta{font-size:11.5px;color:var(--mut);margin-top:3px}
+.dbtns{display:flex;gap:6px;margin-top:8px}
+.btn{border:1px solid var(--line);background:rgba(13,23,40,.6);color:#bae6fd;border-radius:10px;padding:8px 13px;font-size:13.5px;cursor:pointer;min-height:38px}
+.btn:hover{border-color:var(--line2)}
+.btn.pri{background:rgba(34,211,238,.16);border-color:var(--cy);color:#a5f3fc;font-weight:600}
+.btn.dgr{border-color:rgba(248,113,113,.4);color:var(--err)}
+.btn.smx{padding:5px 10px;min-height:32px;font-size:12.5px;border-radius:8px}
+.hint{font-size:12.5px;color:var(--mut);line-height:1.45;margin-top:6px}
+.diag{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.diag span{font-size:12px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:#cbd5e1}
+.diag .ok{color:var(--ok);border-color:rgba(52,211,153,.4)}
+.diag .no{color:var(--err);border-color:rgba(248,113,113,.4)}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+/* Плашка-уведомление */
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%) translateY(16px);background:#0e7490;color:#fff;padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:99;max-width:92vw;text-align:center;box-shadow:0 0 24px rgba(34,211,238,.35)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-height:560px){
+ .orb{width:150px;height:150px}.core{inset:18px}
+ .rings{height:180px}.rings i{width:150px;height:150px}
+ .chathold{max-height:26vh}.clockbox b{font-size:16px}
+}
+@media(min-width:760px){.mask{align-items:center}.modal{border-radius:20px}}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header class="top">
+    <div class="logo">JARVIS<small>assist</small></div>
+    <button class="wx" id="wx" title="Погода" hidden><span class="ic" id="wx-ic">🌡️</span><span id="wx-t">—</span></button>
+    <div class="clockbox"><b id="clk-t">--:--</b><span id="clk-d">—</span></div>
+    <button class="icb" id="gear" title="Настройки" aria-label="Настройки"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.6M12 18.6v2.6M2.8 12h2.6M18.6 12h2.6M5.5 5.5l1.9 1.9M16.6 16.6l1.9 1.9M18.5 5.5l-1.9 1.9M7.4 16.6l-1.9 1.9"/></svg></button>
+  </header>
+
+  <main class="main">
+
+    <section class="stage" id="stage" data-state="idle">
+      <div class="rings"><i></i><i></i><i></i></div>
+      <button class="orb" id="orb" aria-label="Микрофон: нажмите и говорите"><span class="core"></span></button>
+      <div class="statusline" id="statusline">Нажмите на сферу и говорите</div>
+      <div class="live" id="live"></div>
+    </section>
+
+    <div class="chathold" id="chat"></div>
+
+    <div class="sect" id="tiles-cap" hidden>Устройства умного дома · Wi-Fi</div>
+    <div class="tiles" id="tiles"></div>
+    <div class="timers" id="timers"></div>
+
+  </main>
+
+  <footer class="dock">
+    <form id="qform" autocomplete="off">
+      <input id="q" placeholder="Спросите или скомандуйте…" enterkeyhint="send">
+      <button type="submit" class="snd" title="Отправить" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M3 11.5 21 3l-6.2 18-3.1-7.6L3 11.5z"/></svg></button>
+    </form>
+  </footer>
+
+</div>
+
+<!-- Настройки -->
+<div class="mask" id="m-set">
+  <div class="modal">
+    <div class="mhead">
+      <h3>Настройки</h3>
+      <button class="btn smx" data-act="close-set">✕</button>
+    </div>
+    <div class="set">
+
+      <div class="sbox">
+        <h4>Голос</h4>
+        <div class="srow"><label>Голосовые ответы (синтез речи)</label>
+          <span class="sw"><input type="checkbox" id="s-tts" checked><i></i></span></div>
+        <div class="srow"><label>Голос системы</label>
+          <select id="s-voice" style="max-width:190px"></select></div>
+        <div class="srow"><label>Скорость речи</label><input type="range" id="s-rate" min="0.6" max="1.6" step="0.1" value="1"></div>
+        <div class="srow"><label>Тон голоса</label><input type="range" id="s-pitch" min="0.6" max="1.6" step="0.1" value="1"></div>
+      </div>
+
+      <div class="sbox">
+        <h4>Голосовая активация</h4>
+        <div class="srow"><label>Режим «Джарвис»: слушать постоянно и реагировать на обращение «Джарвис»</label>
+          <span class="sw"><input type="checkbox" id="s-wake"><i></i></span></div>
+        <p class="hint">Экспериментально: браузер слушает микрофон постоянно и выполняет только фразы, начинающиеся с «Джарвис» (например: «Джарвис, включи свет»). Расход батареи выше, Chrome может останавливать слушание — тогда коснитесь сферы.</p>
+      </div>
+
+      <div class="sbox">
+        <h4>Погода</h4>
+        <div class="srow"><label>Город по умолчанию</label>
+          <input type="text" class="in" id="s-city" placeholder="Москва" style="max-width:190px"></div>
+        <p class="hint">Данные — открытый сервис Open-Meteo, без ключей. Город можно называть и голосом: «погода в Казани».</p>
+      </div>
+
+      <div class="sbox">
+        <h4>Устройства Wi-Fi</h4>
+        <div id="devlist"></div>
+        <div class="dbtns"><button class="btn pri" id="dev-add">+ Добавить устройство</button>
+          <button class="btn" id="dev-demo">Демо-устройства: <b id="demo-on">вкл</b></button></div>
+        <p class="hint">Пресеты: Tasmota, WLED, Shelly, Home Assistant и «свой URL» — любое устройство, управляемое GET-ссылкой по Wi-Fi. Демо-устройства работают без железа, чтобы попробовать всё сразу.</p>
+      </div>
+
+      <div class="sbox">
+        <h4>ИИ-чат (необязательно)</h4>
+        <div class="srow"><label>Адрес API (OpenAI-совместимый)</label>
+          <input type="url" class="in" id="s-lurl" placeholder="https://api.openai.com/v1" style="max-width:250px"></div>
+        <div class="srow"><label>Ключ API</label>
+          <input type="password" class="in" id="s-lkey" placeholder="sk-…" style="max-width:190px"></div>
+        <div class="srow"><label>Модель</label>
+          <input type="text" class="in" id="s-lmodel" placeholder="gpt-4o-mini" style="max-width:150px"></div>
+        <p class="hint">Если фраза не подошла под встроенные команды, ассистент спросит у вашего ИИ. Ключ вводите сами и он хранится только в этом браузере. Не заполняйте — всё остальное работает без него.</p>
+      </div>
+
+      <div class="sbox">
+        <h4>Диагностика</h4>
+        <div class="diag" id="diag"></div>
+      </div>
+
+      <div class="sbox">
+        <h4>Данные</h4>
+        <div class="dbtns">
+          <button class="btn" data-act="export">Экспорт (JSON)</button>
+          <button class="btn" data-act="import">Импорт</button>
+          <button class="btn dgr" data-act="reset">Полный сброс</button>
+          <input type="file" id="impfile" accept=".json,application/json" hidden>
+        </div>
+        <p class="hint">Всё хранится локально в этом браузере. Экспорт — резервная копия и перенос на другой телефон.</p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Редактор устройства -->
+<div class="mask" id="m-dev">
+  <div class="modal">
+    <div class="mhead">
+      <h3 id="dev-title">Новое устройство</h3>
+      <button class="btn smx" data-act="close-dev">✕</button>
+    </div>
+    <div class="set" style="margin-top:8px">
+      <div class="sbox">
+        <div class="srow"><label>Название (как к нему обращаться)</label></div>
+        <input type="text" class="in" id="d-name" placeholder="Свет на кухне">
+        <div class="srow" style="margin-top:8px"><label>Комната (можно голосом: «включи свет на кухне»)</label></div>
+        <input type="text" class="in" id="d-room" placeholder="кухня">
+        <div class="srow" style="margin-top:8px"><label>Тип устройства</label></div>
+        <select id="d-type"></select>
+        <div class="srow" style="margin-top:8px"><label>IP-адрес или host в вашей Wi-Fi сети</label></div>
+        <input type="text" class="in" id="d-ip" placeholder="192.168.1.50">
+        <div class="srow" style="margin-top:8px" id="d-tokenrow"><label>Токен Home Assistant (long-lived)</label></div>
+        <input type="password" class="in" id="d-token" placeholder="eyJhbGci…" hidden>
+        <div class="srow" style="margin-top:8px" id="d-tploffrow" hidden><label>URL включения ({ip} — подставится адрес)</label></div>
+        <input type="text" class="in" id="d-tplon" placeholder="http://{ip}/on" hidden>
+        <div class="srow" style="margin-top:8px" id="d-tploffrow2" hidden><label>URL выключения</label></div>
+        <input type="text" class="in" id="d-tploff" placeholder="http://{ip}/off" hidden>
+        <p class="hint" id="d-help"></p>
+        <div class="dbtns">
+          <button class="btn pri" id="dev-save">Сохранить</button>
+          <button class="btn" id="dev-test">Проверить</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ================= УТИЛИТЫ ================= */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function pad2(n){return String(n).padStart(2,'0')}
+function now(){return Date.now()}
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('show'),3000)}
+function norm(s){return String(s).toLowerCase().replace(/[.,!?;:()"'«»\-–—]/g,' ').replace(/\s+/g,' ').trim()}
+function fmtT(v){v=Math.round(v);return(v<0?'минус ':'плюс ')+Math.abs(v)}
+function uid(p){return p+Math.random().toString(36).slice(2,8)}
+
+/* ================= ДАННЫЕ ================= */
+const KEY='jarvis_v1';
+let DB=null;
+const TYPES={
+ tasmota:{label:'Tasmota (розетка, реле, диммер)',help:'Открытая прошивка: команды уходят на http://{ip}/cm?cmnd=… Включение, выключение, яркость (диммеры) и цвет (лампы).'},
+ wled:{label:'WLED (LED-подсветка)',help:'Прошивка для WS2812-лент: включение, яркость и цвет. WLED сам разрешает запросы из браузера (CORS), состояние можно читать.'},
+ shelly:{label:'Shelly (реле Gen1)',help:'Классический HTTP API: http://{ip}/relay/0?turn=on|off|toggle.'},
+ ha:{label:'Home Assistant',help:'POST-запрос к /api/services с токеном. В Entity ID укажите, например, light.kitchen. В настройках HA включите cors_allowed_origins или используйте прокси.'},
+ generic:{label:'Другое (свои URL)',help:'Любое устройство с веб-интерфейсом: укажите URL включения и выключения, {ip} подставится автоматически.'}
+};
+function demoDevices(){
+ return[
+  {id:'D1',name:'Свет на кухне',room:'кухня',type:'tasmota',ip:'demo',virtual:true,state:'off'},
+  {id:'D2',name:'Гирлянда',room:'зал',type:'wled',ip:'demo',virtual:true,state:'off',bri:128,color:[255,170,80]}
+ ];
+}
+function freshDB(){
+ return{v:1,seq:1,
+  settings:{tts:true,rate:1,pitch:1,voiceURI:'',wake:false,demo:true,city:'',llm:{url:'',key:'',model:''}},
+  devices:demoDevices(),timers:[],history:[]};
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
+function loadDB(){
+ try{const raw=localStorage.getItem(KEY);
+  if(raw){const d=JSON.parse(raw);if(d&&d.v===1&&Array.isArray(d.devices)){DB=d;
+   DB.settings.llm=DB.settings.llm||{url:'',key:'',model:''};DB.timers=DB.timers||[];DB.history=DB.history||[];
+   if(!DB.devices.length&&DB.settings.demo)DB.devices=demoDevices();
+   return}}}catch(e){}
+ DB=freshDB();save();
+}
+function devById(id){return DB.devices.find(d=>d.id===id)}
+
+/* ================= КОМАНДЫ УСТРОЙСТВ ================= */
+const COLORS=[
+ ['тёплый белый',[255,180,100]],['теплый белый',[255,180,100]],
+ ['красн',[220,38,38]],['зелен',[34,197,94]],['зелён',[34,197,94]],
+ ['син',[37,99,235]],['голуб',[56,189,248]],['жёлт',[234,179,8]],['желт',[234,179,8]],
+ ['оранж',[249,115,22]],['фиолет',[139,92,246]],['розов',[236,72,153]],['бел',[255,255,255]]
+];
+function findColor(t){for(const[k,v]of COLORS)if(t.includes(k))return v;return null}
+function findPct(t){
+ let m=t.match(/(\d{1,3})\s*(?:%|процент)/);if(!m)return null;
+ const v=parseInt(m[1],10);return v>=0&&v<=100?v:null;
+}
+const NUMW={'ноль':0,'один':1,'одну':1,'одна':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,'двадцать':20,'тридцать':30,'сорок':40,'пятьдесят':50,'шестьдесят':60,'семьдесят':70,'восемьдесят':80,'девяносто':90,'сто':100};
+function numFromWords(chunk){
+ const toks=chunk.trim().split(' ').filter(Boolean);let acc=null,total=0,found=false;
+ for(const w of toks){const v=NUMW[w];if(v===undefined){if(acc!==null){total+=acc;acc=null}continue}found=true;if(v>=100){total+=v;acc=null}else if(v>=20){if(acc!==null){total+=acc}total+=v;acc=null}else{if(acc!==null&&acc<10){total+=acc+v;acc=null}else{acc=v}}}
+ if(acc!==null)total+=acc;return found?total:null;
+}
+function findDuration(t){
+ let m=t.match(/(\d+)\s*(секунд[а-я]*|сек|с(?![а-яё])|минут[а-я]*|мин|м(?![а-яё])|час[а-я]*|ч(?![а-яё]))/);
+ let n=null,unit=null,consumed=null;
+ if(m){n=parseInt(m[1],10);unit=m[2];consumed=m[0]}
+ else if(/полчаса/.test(t)){return{ms:1800000,consumed:'полчаса'}}
+ else if(/полминуты/.test(t)){return{ms:30000,consumed:'полминуты'}}
+ else{m=t.match(/([а-яё]+(?:\s+[а-яё]+)?)\s*(секунд[а-я]*|сек|минут[а-я]*|мин|час[а-я]*)/);
+  if(m){n=numFromWords(m[1]);unit=m[2];if(n!==null)consumed=m[0]}}
+ if(n===null||!unit)return null;
+ const u=unit[0]==='с'?1000:(unit[0]==='м'?60000:3600000);
+ const ms=Math.min(n*u,24*3600000);if(ms<500)return null;
+ return{ms:ms,consumed:consumed||''};
+}
+function devUrl(d,act,arg){
+ const ip=d.ip;
+ if(d.type==='tasmota'){
+  const cm=act==='on'?'Power%20On':act==='off'?'Power%20Off':act==='toggle'?'Power%20TOGGLE':act==='dim'?'Dimmer%20'+arg:'Color%20'+arg;
+  return'http://'+ip+'/cm?cmnd='+cm;
+ }
+ if(d.type==='shelly'){return'http://'+ip+'/relay/0?turn='+(act==='on'?'on':act==='off'?'off':'toggle')}
+ if(d.type==='wled'){
+  if(act==='on')return'http://'+ip+'/win&T=1';
+  if(act==='off')return'http://'+ip+'/win&T=0';
+  if(act==='toggle')return'http://'+ip+'/win&T=2';
+  if(act==='dim')return'http://'+ip+'/win&A='+arg;
+  if(act==='color')return'http://'+ip+'/win&R='+arg[0]+'&G='+arg[1]+'&B='+arg[2];
+ }
+ if(d.type==='generic'){
+  if(act==='on'&&d.tplOn)return d.tplOn.replace(/\{ip\}/g,ip);
+  if(act==='off'&&d.tplOff)return d.tplOff.replace(/\{ip\}/g,ip);
+ }
+ return null;
+}
+async function sendDevice(d,act,arg){
+ if(d.virtual){
+  if(act==='on')d.state='on';
+  else if(act==='off')d.state='off';
+  else if(act==='toggle')d.state=d.state==='on'?'off':'on';
+  else if(act==='dim')d.bri=Math.max(1,Math.min(255,arg));
+  else if(act==='color')d.color=arg;
+  return{ok:true,virtual:true};
+ }
+ const url=devUrl(d,act,arg);
+ try{
+  if(d.type==='ha'){
+   const svc=d.entity&&d.entity.startsWith('switch')?'switch':'light';
+   const r=await fetch((d.tls?'https':'http')+'://'+(d.ip.includes(':')?d.ip:d.ip+':8123')+'/api/services/'+svc+'/turn_'+(act==='off'?'off':'on'),{
+    method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(d.token||'')},
+    body:JSON.stringify({entity_id:d.entity||''})});
+   return{ok:r.ok};
+  }
+  if(!url)return{ok:false,msg:'не знаю такую команду для этого устройства'};
+  await fetch(url,{mode:'no-cors',cache:'no-store'});
+  if(act==='on'||act==='off')d.state=act;
+  if(act==='toggle')d.state=d.state==='on'?'off':'on';
+  return{ok:true};
+ }catch(e){return{ok:false,msg:'устройство не отвечает (проверьте, что телефон и устройство в одной Wi-Fi сети)'}}
+}
+
+/* ================= МОЗГ ================= */
+const JOKES=[
+ 'Программист ставит на ночь два стакана: один с водой — на случай, если захочет пить, и второй пустой — на случай, если не захочет.',
+ 'Мой хозяин сказал, что я умный дом. Я скромно промолчал, но включил ему свет в 3 часа ночи для профилактики.',
+ 'Робот не должен шутить над человеком. Пункт 3 устава. Но ладно: почему Wi-Fi дома медленный? Потому что стены думают так же медленно, как и мы.',
+ 'Лучший способ выключить интернет — сказать маме, что оплата за свет.',
+ 'Смарт-часы умеют считать шаги. Мои насчитали 14 шагов: от дивана до холодильника и обратно.',
+ 'Знаете, почему у меня нет проблем с интернет-магазинами? У меня нет зарплатного счёта.'
+];
+function pickJoke(){return JOKES[Math.floor(Math.random()*JOKES.length)]}
+function timeStr(){const d=new Date();return pad2(d.getHours())+':'+pad2(d.getMinutes())}
+function dateStr(){const d=new Date();const wd=['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'][d.getDay()];return d.getDate()+' '+['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'][d.getMonth()]+', '+wd}
+function matchDevice(t){
+ const ds=DB.devices;if(!ds.length)return{dev:null,why:'empty'};
+ if(ds.length===1)return{dev:ds[0]};
+ let best=null,bs=0;
+ const stem=w=>w.slice(0,Math.max(4,w.length-2));
+ for(const d of ds){
+  const hay=norm((d.name||'')+' '+(d.room||''));
+  const toks=hay.split(' ').filter(w=>w.length>=4);
+  let s=0;
+  if(d.room){
+   const rs=norm(d.room);
+   if(t.includes(rs)||t.includes(stem(rs)))s+=2;
+  }
+  for(const w of toks)if(t.includes(stem(w)))s+=2;
+  if(t.includes(norm(d.name)))s+=4;
+  if(s>bs){bs=s;best=d}
+ }
+ if(best)return{dev:best};
+ const genericMap={'гирлянд':'wled','подсветк':'wled','лент':'wled','свет':'tasmota','лампочк':'tasmota','люстр':'tasmota','розетк':'tasmota','реле':'shelly'};
+ for(const[k,ty]of Object.entries(genericMap)){if(t.includes(k)){const c=ds.filter(x=>x.type===ty);if(c.length===1)return{dev:c[0]}}}
+ return{dev:null,why:'ambiguous'};
+}
+async function deviceCommand(t){
+ const verb=t.match(/(включите|включи|зажгите|зажги|запустите|запусти|выключите|выключи|погасите|погаси|отключите|отключи|переключите|переключи|тумблер)/);
+ let v=null,act=null;
+ if(verb){
+  v=verb[1].replace(/те$/,'');
+  act=v==='переключи'||v==='тумблер'?'toggle':(v==='включи'||v==='зажги'||v==='запусти')?'on':'off';
+ }else{
+  /* команда без глагола: «гирлянда синим», «свет на кухне 50 процентов» */
+  const hasCol=!!findColor(t),hasPct=findPct(t)!==null;
+  if(!hasCol&&!hasPct)return null;
+  v='включи';act='on';
+ }
+ let targets=[];
+ if(/(^|[^а-яё])вс[её]х?([^а-яё]|$)/.test(t)){targets=DB.devices.slice()}
+ else{const m=matchDevice(t);
+  if(m.why==='empty')return'Устройств пока нет. Добавьте их в настройках — кнопка «шестерёнка».';
+  if(!m.dev)return'Уточните, о каком устройстве речь — например, «'+DB.devices.map(d=>d.name).join('», «')+'».';
+  targets=[m.dev];
+ }
+ const col=act==='on'?findColor(t):null;
+ const pct=findPct(t);
+ const msgs=[];
+ for(const d of targets){
+  if(act==='on'&&col&&d.type!=='generic'){
+   const r=await sendDevice(d,'color',col);
+   await sendDevice(d,'on');
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — включаю цветом');
+  }else if(pct!==null&&(d.type==='wled'||d.type==='tasmota')&&(act==='on')){
+   const r=await sendDevice(d,'dim',Math.round(pct*255/100));
+   await sendDevice(d,'on');
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — яркость '+pct+'%');
+  }else if(act==='on'&&v==='включи'&&/\bяр(ко|кость)\b/.test(t)===false&&pct===null&&!col){
+   const r=await sendDevice(d,'on');
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — включаю');
+  }else if(act==='off'){
+   const r=await sendDevice(d,'off');
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — выключаю');
+  }else if(act==='toggle'){
+   const r=await sendDevice(d,'toggle');
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — переключаю');
+  }else{
+   const r=await sendDevice(d,act);
+   msgs.push((r.ok?'':'⚠ ')+d.name+' — '+act);
+  }
+ }
+ save();renderTiles();
+ return msgs.join('. ')+'.';
+}
+function deviceStatus(){
+ if(!DB.devices.length)return'Устройств пока нет — добавьте их в настройках.';
+ const on=DB.devices.filter(d=>d.state==='on'),off=DB.devices.filter(d=>d.state!=='on');
+ let s='';
+ if(on.length)s+='Сейчас включены: '+on.map(d=>d.name).join(', ')+'. ';
+ else s+='Известных включённых устройств нет. ';
+ if(DB.devices.some(d=>!d.virtual))s+='Состояние реальных устройств — по последней поданной команде.';
+ return s.trim();
+}
+function cancelTimers(){
+ const t=DB.timers;DB.timers=[];save();renderTimers();
+ return t.length?'Отменяю: '+t.length+(t.length===1?' таймер.':' таймера.'):'Активных таймеров нет.';
+}
+function mathTry(t){
+ let e=t.replace(/сколько будет|посчитай|вычисли|чему равно/g,' ')
+  .replace(/умножить на|умножить|умножь на|умножь|умножен[ао]? на/g,'*')
+  .replace(/разделить на|разделить|подели(ть)? на|подели/g,'/')
+  .replace(/плюс|прибав(ить|ь)?/g,'+').replace(/минус|отня(ть|ми)?/g,'-')
+  .replace(/×|х(?=\s*\d)|\bx(?=\s*\d)/g,'*').replace(/÷|:/g,'/')
+  .replace(/в квадрате/g,'**2').replace(/[,%]/g,'').trim();
+ e=e.replace(/\s+/g,'');
+ if(e.length<3||e.length>60||!/\d/.test(e)||!/[+\-*/]/.test(e))return null;
+ if(!/^[\d+\-*/().]+$/.test(e))return null;
+ if(/\/0(?!\d)/.test(e))return'На ноль делить нельзя — даже у меня есть пределы.';
+ try{const v=Function('"use strict";return('+e+')')();if(typeof v==='number'&&isFinite(v)){const r=Math.round(v*1000)/1000;return'Это '+r+'.'}}catch(x){}
+ return null;
+}
+function durStr(ms){
+ if(ms>=3600000&&ms%3600000===0){const h=ms/3600000;return h===1?'час':h+' ч'}
+ if(ms>=60000&&ms%60000===0){const m=ms/60000;return m===1?'минуту':m+' мин'}
+ return Math.round(ms/1000)+' сек';
+}
+function addTimer(ms,label){
+ const t={id:uid('T'),total:ms,end:now()+ms,label:label||''};
+ DB.timers.push(t);save();renderTimers();
+ return{msg:'Ставлю таймер на '+durStr(ms)+(label?' — '+label:'')+'.',t:t};
+}
+async function think(raw){
+ const t=norm(raw);
+ if(!t)return'Я вас не расслышал. Повторите, пожалуйста.';
+ /* помощь */
+ if(/что ты умеешь|помощь|список команд|что можешь/.test(t))
+  return'Я умею: управлять устройствами («включи свет на кухне», «выключи всё», «гирлянда на 50 процентов», «гирлянда синим»); статус («что включено»); таймеры («таймер на 10 минут», «напомни через полчаса полить цветы»); погоду («погода в Москве»); время и дату; калькулятор («сколько будет 12 умножить на 8»); шутки. Полный список — в настройках.';
+ /* приветствие и светская беседа */
+ if(/^(привет|здравствуй|здарова|доброе утро|добрый день|добрый вечер|хай|hello|алло)( |$)/.test(t))
+  return'На связи. Чем могу помочь?';
+ if(/кто ты|как тебя зовут|ты кто/.test(t))
+  return'Я JARVIS — ваш голосовой ассистент. Управляю умным домом по Wi-Fi, веду таймеры, докладываю погоду и время.';
+ if(/как (у тебя )?дел(а|и)|как ты\b|что нового/.test(t))
+  return'Все системы в норме, связи с устройствами — по расписанию. Чем заняться?';
+ if(/спасибо|благодар/.test(t))return'Всегда к вашим услугам.';
+ if(/замолчи|хватит говорить|тихо\b|молчи/.test(t)){try{if('speechSynthesis'in window)speechSynthesis.cancel()}catch(e){}return'Молчу.'}
+ if(/повтори/.test(t)){const last=[...DB.history].reverse().find(h=>h.role==='bot');return last?last.text:'Пока я ничего не говорил.'}
+ if(/шутк|анекдот|рассмеши|шути/.test(t))return pickJoke();
+ /* время и дата */
+ if(/врем|который час/.test(t)&&!/таймер/.test(t))return'Сейчас '+timeStr()+'.';
+ if(/число|какая дата|день недели/.test(t))return'Сегодня '+dateStr()+'.';
+ /* таймеры */
+ if(/отмени|стоп|отмена|сбрось|убери/.test(t)&&/таймер|напомин/.test(t))return cancelTimers();
+ if(/таймер|напомни|будильник|разбуди/.test(t)){
+  const dur=findDuration(t);
+  if(!dur)return'На сколько поставить таймер? Например: «таймер на 10 минут».';
+  let label=t.replace(new RegExp(dur.consumed.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'i'),'');
+  label=label.replace(/таймер( на)?|напомни( через)?|будильник( на)?|постав(ь)?/g,'').replace(/через/,'').trim();
+  if(label.length>60)label=label.slice(0,60);
+  const r=addTimer(dur.ms,label||'');
+  return r.msg;
+ }
+ /* устройства: статус */
+ if(/статус|что включено|что горит|какие устройства|доклад|доложи/.test(t))return deviceStatus();
+ /* устройства: команды */
+ const dc=await deviceCommand(t);if(dc)return dc;
+ /* погода */
+ if(/погод|за окном|на улице/.test(t))return weatherAsk(t);
+ /* калькулятор */
+ const mt=mathTry(t);if(mt)return mt;
+ /* не распознано → ИИ или отказ */
+ const ll=await llmReply(raw);
+ if(ll)return ll;
+ return'Не понял команду. Попробуйте: «включи свет на кухне», «таймер на 5 минут», «погода», «что ты умеешь».';
+}
+async function llmReply(text){
+ const s=DB.settings.llm;
+ if(!s||!s.url||!s.key)return null;
+ try{
+  const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),25000);
+  const r=await fetch(s.url.replace(/\/+$/,'')+'/chat/completions',{
+   method:'POST',signal:ctl.signal,
+   headers:{'Content-Type':'application/json','Authorization':'Bearer '+s.key},
+   body:JSON.stringify({model:s.model||'gpt-4o-mini',max_tokens:250,temperature:0.7,
+    messages:[{role:'system',content:'Ты — JARVIS, голосовой ассистент в телефоне у хозяина. Отвечай по-русски, кратко (1-3 предложения), по делу и с лёгким характером дворецкого-технолога. Ты умеешь управлять умным домом: если просят включить/выключить устройство, скажи, что команда передана.'},{role:'user',content:text}]})});
+  clearTimeout(tm);
+  if(!r.ok)return null;
+  const j=await r.json();
+  const c=j&&j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content;
+  return c?String(c).trim():null;
+ }catch(e){return null}
+}
+
+/* ================= ПОГОДА ================= */
+const WMO={0:['ясно','☀️'],1:['преимущественно ясно','🌤️'],2:['переменная облачность','⛅'],3:['облачно','☁️'],45:['туман','🌫️'],48:['изморозь','🌫️'],51:['лёгкая морось','🌦️'],53:['морось','🌦️'],55:['сильная морось','🌧️'],56:['ледяная морось','🌧️'],57:['ледяная морось','🌧️'],61:['небольшой дождь','🌦️'],63:['дождь','🌧️'],65:['сильный дождь','🌧️'],66:['ледяной дождь','🌧️'],67:['ледяной дождь','🌧️'],71:['небольшой снег','🌨️'],73:['снег','🌨️'],75:['сильный снег','❄️'],77:['снежные зёрна','🌨️'],80:['ливень','🌦️'],81:['ливень','🌧️'],82:['сильный ливень','⛈️'],85:['снегопад','🌨️'],86:['сильный снегопад','❄️'],95:['гроза','⛈️'],96:['гроза с градом','⛈️'],99:['сильная гроза с градом','⛈️']};
+const CITY_FIX={'москве':'Москва','москву':'Москва','москва':'Москва','питере':'Санкт-Петербург','питерее':'Санкт-Петербург','спб':'Санкт-Петербург','петербурге':'Санкт-Петербург','казани':'Казань','казань':'Казань','новосибирске':'Новосибирск','екатеринбурге':'Екатеринбург','сочи':'Сочи','самаре':'Самара','уфе':'Уфа','омске':'Омск','краснодаре':'Краснодар','воронеже':'Воронеж','ростове-на-дону':'Ростов-на-Дону','ростове':'Ростов-на-Дону','владивостоке':'Владивосток','калининграде':'Калининград','минске':'Минск','алматы':'Алматы','астане':'Астана','киеве':'Киев','ташкенте':'Ташкент','тбилиси':'Тбилиси','ереване':'Ереван','баку':'Баку'};
+function cityCandidates(w){
+ const s=w.trim();if(!s)return[];const out=new Set([s]);
+ if(CITY_FIX[s])out.add(CITY_FIX[s]);
+ const stem=s.replace(/(е|и|у|ом|ой|ы|ю)$/,'');
+ out.add(stem+'а');out.add(stem+'ь');out.add(stem+'я');out.add(stem);
+ return[...out].filter(Boolean).slice(0,5);
+}
+async function geocode(city){
+ for(const cand of cityCandidates(city)){
+  try{
+   const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(cand)+'&count=1&language=ru&format=json');
+   const j=await r.json();
+   if(j.results&&j.results.length){const g=j.results[0];return{lat:g.latitude,lon:g.longitude,name:g.name+(g.country?', '+g.country:'')}}
+  }catch(e){return null}
+ }
+ return null;
+}
+async function fetchWeather(lat,lon){
+ const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m&wind_speed_unit=ms');
+ const j=await r.json();
+ return j&&j.current?j.current:null;
+}
+function wxStr(c){
+ const d=WMO[c.weather_code]||['пасмурно','🌡️'];
+ return{ic:d[1],desc:d[0],temp:Math.round(c.temperature_2m),app:Math.round(c.apparent_temperature),wind:Math.round(c.wind_speed_10m),humi:c.relative_humidity_2m};
+}
+async function weatherAsk(t){
+ let city=null;
+ const m=t.match(/(?:в|во|городе?|город)\s+([a-zа-яё\- ]{2,30})\s*$/);
+ if(m)city=m[1].trim();
+ if(!city&&DB.settings.city)return weatherNow(DB.settings.city,true);
+ if(!city)return'Скажите, для какого города: например, «погода в Москве». Город по умолчанию можно задать в настройках.';
+ return weatherNow(city,true);
+}
+async function weatherNow(cityName,asCommand){
+ if(!navigator.onLine)return'Нет соединения с интернетом — погода недоступна.';
+ const g=await geocode(cityName);
+ if(!g)return'Не нашёл город «'+cityName+'». Попробуйте назвать иначе.';
+ try{
+  const c=await fetchWeather(g.lat,g.lon);
+  const w=wxStr(c);
+  DB.settings.city=g.name.split(',')[0];save();updateWx(w);
+  return'В '+g.name+' сейчас '+fmtT(w.temp)+'°, ощущается как '+fmtT(w.app)+'°, '+w.desc+', ветер '+w.wind+' м/с, влажность '+w.humi+'%.';
+ }catch(e){return'Не смог получить погоду — сервис недоступен. Проверьте интернет.'}
+}
+function updateWx(w){$('wx').hidden=false;$('wx-ic').textContent=w.ic;$('wx-t').textContent=w.temp+'° · '+w.desc}
+async function refreshWx(){
+ try{
+  if(!DB.settings.city||!navigator.onLine){$('wx').hidden=true;return}
+  const g=await geocode(DB.settings.city);if(!g){$('wx').hidden=true;return}
+  const c=await fetchWeather(g.lat,g.lon);updateWx(wxStr(c));
+ }catch(e){$('wx').hidden=true}
+}
+
+/* ================= ГОЛОС ================= */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition||null;
+let rec=null,recActive=false;
+function stage(st){
+ $('stage').dataset.state=st;
+ $('statusline').textContent=st==='listening'?'Слушаю…':st==='speaking'?'Отвечаю…':st==='thinking'?'Обрабатываю…':'Нажмите на сферу и говорите';
+}
+function speak(text){
+ if(!DB.settings.tts||!('speechSynthesis'in window)){stage(recActive?'listening':'idle');return}
+ try{
+  speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='ru-RU';u.rate=DB.settings.rate;u.pitch=DB.settings.pitch;
+  const vs=speechSynthesis.getVoices();
+  const sel=vs.find(v=>v.voiceURI===DB.settings.voiceURI)||vs.find(v=>v.lang&&v.lang.toLowerCase().indexOf('ru')===0);
+  if(sel)u.voice=sel;
+  u.onstart=()=>stage('speaking');
+  const back=()=>stage(recActive?'listening':'idle');
+  u.onend=back;u.onerror=back;
+  speechSynthesis.speak(u);
+ }catch(e){stage(recActive?'listening':'idle')}
+}
+function loadVoices(){
+ if(!('speechSynthesis'in window))return;
+ const vs=speechSynthesis.getVoices();
+ $('s-voice').innerHTML='<option value="">Авто (русский)</option>'+vs.map(v=>'<option value="'+esc(v.voiceURI)+'">'+esc(v.name)+' ('+v.lang+')</option>').join('');
+ $('s-voice').value=DB.settings.voiceURI||'';
+}
+function startRec(){
+ if(!SR){toast('Распознавание речи не поддерживается — откройте в Chrome на Android');return}
+ if(recActive)return;
+ recActive=true;
+ rec=new SR();rec.lang='ru-RU';rec.interimResults=true;rec.continuous=!!DB.settings.wake;rec.maxAlternatives=1;
+ rec.onresult=e=>{
+  let fin='',inter='';
+  for(let i=e.resultIndex;i<e.results.length;i++){const r=e.results[i];if(r.isFinal)fin+=r[0].transcript;else inter+=r[0].transcript}
+  $('live').textContent=inter||fin;
+  if(fin.trim())handleUtter(fin.trim());
+ };
+ rec.onerror=e=>{
+  if(e.error==='not-allowed'||e.error==='service-not-allowed'){say('Нет доступа к микрофону. Разрешите его в настройках браузера (значок замка в адресной строке).',true);stopRec()}
+ };
+ rec.onend=()=>{
+  $('live').textContent='';
+  if(DB.settings.wake&&recActive){try{rec.start()}catch(x){recActive=false;stage('idle')}}
+  else{recActive=false;stage('idle')}
+ };
+ try{rec.start();stage('listening')}catch(e){recActive=false;stage('idle')}
+}
+function stopRec(){recActive=false;try{rec&&rec.stop()}catch(e){}$('live').textContent='';stage('idle')}
+const WAKE=['джарвис','жарвис','джарвиз','jarvis'];
+function handleUtter(fin){
+ if(DB.settings.wake){
+  const low=norm(fin);
+  const hit=WAKE.find(w=>low.indexOf(w)===0);
+  if(!hit)return;
+  const rest=fin.slice(hit.length).replace(/^[,.!\s]+/,'');
+  if(!rest.trim()){say('Слушаю.');return}
+  processUser(rest.trim());
+  return;
+ }
+ processUser(fin);
+}
+async function processUser(text){
+ stage('thinking');
+ pushMsg('usr',text);
+ const reply=await think(text);
+ say(reply,false);
+}
+function say(text,isErr){
+ pushMsg('bot',text,isErr);
+ if(isErr)stage(recActive?'listening':'idle');
+ speak(text);
+}
+function pushMsg(role,text,err){
+ DB.history.push({role:role,text:text,err:!!err,at:now()});
+ if(DB.history.length>40)DB.history=DB.history.slice(-40);
+ save();renderChat();
+}
+
+/* ================= UI ================= */
+function renderChat(){
+ const c=$('chat');
+ c.innerHTML=DB.history.slice(-14).map(h=>'<div class="msg '+(h.role==='usr'?'usr':'bot'+(h.err?' err':''))+'"><div class="who">'+(h.role==='usr'?'Вы':'Jarvis')+'</div>'+esc(h.text)+'</div>').join('');
+ c.scrollTop=c.scrollHeight;
+}
+function renderTiles(){
+ const ds=DB.devices;
+ $('tiles-cap').hidden=!ds.length;
+ $('tiles').innerHTML=ds.map(d=>'<button class="tile'+(d.state==='on'?' on':'')+'" data-dev="'+d.id+'"><span class="row"><span class="dot"></span><span class="nm">'+esc(d.name)+'</span></span><div class="rm">'+esc(d.room||'')+(d.virtual?(d.room?' · демо':'демо'):'')+'</div></button>').join('');
+}
+function renderTimers(){
+ $('timers').innerHTML=DB.timers.map(t=>{
+  const left=Math.max(0,t.end-now());
+  return'<span class="tchip">'+esc(t.label||'Таймер')+' <b>'+pad2(Math.floor(left/60000))+':'+pad2(Math.floor(left%60000/1000))+'</b><button class="x" data-act="kill-timer" data-t="'+t.id+'" title="Отменить">✕</button></span>';
+ }).join('');
+}
+function timersTick(){
+ const done=DB.timers.filter(t=>t.end<=now());
+ if(done.length){
+  DB.timers=DB.timers.filter(t=>t.end>now());save();renderTimers();
+  done.forEach(t=>{say('Таймер'+(t.label?' — '+t.label:'')+' завершён!');try{navigator.vibrate&&navigator.vibrate([400,150,400])}catch(e){}});
+  return;
+ }
+ if(DB.timers.length)renderTimers();
+}
+function clockTick(){
+ const d=new Date();
+ $('clk-t').textContent=pad2(d.getHours())+':'+pad2(d.getMinutes());
+ $('clk-d').textContent=pad2(d.getDate())+'.'+pad2(d.getMonth()+1)+'.'+d.getFullYear();
+}
+/* --- настройки --- */
+let curDev=null;
+function diag(){
+ const d=[];
+ d.push(SR?'<span class="ok">Микрофон ✓</span>':'<span class="no">Распознавание речи ✗</span>');
+ d.push(('speechSynthesis'in window)?'<span class="ok">Синтез речи ✓ ('+speechSynthesis.getVoices().length+' голосов)</span>':'<span class="no">Синтез речи ✗</span>');
+ d.push(navigator.onLine?'<span class="ok">Сеть ✓</span>':'<span class="no">Сеть ✗</span>');
+ d.push('<span>Демо: '+(DB.settings.demo?'вкл':'выкл')+'</span>');
+ $('diag').innerHTML=d.join('');
+}
+function syncSetUI(){
+ $('s-tts').checked=!!DB.settings.tts;
+ $('s-rate').value=DB.settings.rate;$('s-pitch').value=DB.settings.pitch;
+ $('s-wake').checked=!!DB.settings.wake;
+ $('s-city').value=DB.settings.city||'';
+ $('s-lurl').value=DB.settings.llm.url||'';$('s-lkey').value=DB.settings.llm.key||'';$('s-lmodel').value=DB.settings.llm.model||'';
+ $('demo-on').textContent=DB.settings.demo?'вкл':'выкл';
+}
+function renderDevlist(){
+ $('devlist').innerHTML=DB.devices.map(d=>'<div class="drow"><div class="t"><span class="dot'+(d.state==='on'?' on':'')+'" style="background:'+(d.state==='on'?'var(--ok)':'#334155')+'"></span><b>'+esc(d.name)+'</b></div><div class="meta">'+esc(d.room||'—')+' · '+TYPES[d.type].label.split(' (')[0]+(d.virtual?' · демо':' · '+esc(d.ip||''))+'</div><div class="dbtns"><button class="btn smx" data-act="dev-edit" data-d="'+d.id+'">Изменить</button><button class="btn smx" data-act="dev-test" data-d="'+d.id+'">Проверить</button><button class="btn smx dgr" data-act="dev-del" data-d="'+d.id+'">Удалить</button></div></div>').join('');
+}
+function devTypeUI(){
+ const ty=$('d-type').value;
+ const ha=ty==='ha',g=ty==='generic';
+ $('d-tokenrow').hidden=!ha;$('d-token').hidden=!ha;
+ $('d-tploffrow').hidden=!ha&&!g;$('d-tplon').hidden=!ha&&!g;
+ $('d-tploffrow2').hidden=!g;$('d-tploff').hidden=!g;
+ document.querySelector('#d-tploffrow label').textContent=ha?'Entity ID (например light.kitchen)':'URL включения ({ip} — подставится адрес)';
+ $('d-help').textContent=TYPES[ty].help;
+}
+function openDevEditor(id){
+ curDev=id;
+ const d=id?devById(id):null;
+ $('dev-title').textContent=d?'Устройство: '+d.name:'Новое устройство';
+ $('d-type').innerHTML=Object.keys(TYPES).map(k=>'<option value="'+k+'">'+esc(TYPES[k].label)+'</option>').join('');
+ $('d-name').value=d?d.name:'';$('d-room').value=d?(d.room||''):'';
+ $('d-type').value=d?d.type:'tasmota';
+ $('d-ip').value=d?(d.ip||''):'';$('d-token').value=d?(d.token||''):'';
+ $('d-tplon').value=d?(d.tplOn||''):'';$('d-tploff').value=d?(d.tplOff||''):'';
+ devTypeUI();
+ $('m-dev').classList.add('open');
+}
+function devFromForm(){
+ return{name:$('d-name').value.trim(),room:$('d-room').value.trim(),type:$('d-type').value,
+  ip:$('d-ip').value.trim(),token:$('d-token').value.trim(),tplOn:$('d-tplon').value.trim(),tplOff:$('d-tploff').value.trim(),
+  entity:$('d-type').value==='ha'?$('d-tplon').value.trim():''};
+}
+function devTest(){
+ const d=curDev?devById(curDev):devFromForm();
+ if(!d){toast('Сначала заполните форму');return}
+ if(!d.virtual&&!d.ip){toast('Укажите IP-адрес устройства');return}
+ if(d.virtual){sendDevice(d,'toggle').then(()=>{renderTiles();toast('Демо-устройство: состояние переключено')});return}
+ toast('Отправляю команду переключения…');
+ sendDevice(Object.assign({virtual:false},d),'toggle').then(r=>{
+  toast(r.ok?'Команда отправлена — проверьте устройство':'Не отвечает. Проверьте IP и одну ли сеть с телефоном');
+  save();renderTiles();
+ });
+}
+function devSave(){
+ const f=devFromForm();
+ if(!f.name){toast('Введите название устройства');return}
+ if(!f.virtualHint&&!f.ip&&f.type!=='generic'){toast('Совет: укажите IP-адрес (устройство и телефон — в одной Wi-Fi сети)')}
+ if(curDev){Object.assign(devById(curDev),f)}
+ else{DB.devices.push(Object.assign({id:uid('D'),virtual:false,state:'off'},f))}
+ save();renderDevlist();renderTiles();$('m-dev').classList.remove('open');
+ toast('Устройство сохранено');
+}
+
+/* ================= СОБЫТИЯ ================= */
+$('qform').addEventListener('submit',e=>{
+ e.preventDefault();
+ const v=$('q').value.trim();if(!v)return;
+ $('q').value='';processUser(v);
+});
+$('orb').addEventListener('click',()=>{
+ if('speechSynthesis'in window&&speechSynthesis.speaking){speechSynthesis.cancel();stage('idle');return}
+ if(recActive)stopRec();else startRec();
+});
+$('gear').addEventListener('click',()=>{
+ syncSetUI();renderDevlist();diag();loadVoices();$('m-set').classList.add('open');
+});
+$('wx').addEventListener('click',()=>{if(DB.settings.city)processUser('погода в '+DB.settings.city)});
+$('dev-add').addEventListener('click',()=>openDevEditor(null));
+$('dev-demo').addEventListener('click',()=>{
+ DB.settings.demo=!DB.settings.demo;
+ if(DB.settings.demo&&!DB.devices.some(d=>d.virtual))DB.devices=demoDevices().concat(DB.devices);
+ if(!DB.settings.demo)DB.devices=DB.devices.filter(d=>!d.virtual);
+ save();syncSetUI();renderDevlist();renderTiles();
+ toast(DB.settings.demo?'Демо-устройства включены':'Демо-устройства выключены');
+});
+$('d-type').addEventListener('change',devTypeUI);
+$('dev-save').addEventListener('click',devSave);
+$('dev-test').addEventListener('click',devTest);
+$('s-tts').addEventListener('change',e=>{DB.settings.tts=e.target.checked;save()});
+$('s-voice').addEventListener('change',e=>{DB.settings.voiceURI=e.target.value;save()});
+$('s-rate').addEventListener('change',e=>{DB.settings.rate=parseFloat(e.target.value);save()});
+$('s-pitch').addEventListener('change',e=>{DB.settings.pitch=parseFloat(e.target.value);save()});
+$('s-wake').addEventListener('change',e=>{
+ DB.settings.wake=e.target.checked;save();
+ if(DB.settings.wake){toast('Режим «Джарвис» включён — говорите «Джарвис, …»');if(!recActive)startRec()}
+ else{stopRec()}
+});
+$('s-city').addEventListener('change',e=>{DB.settings.city=e.target.value.trim();save();refreshWx()});
+$('s-lurl').addEventListener('change',e=>{DB.settings.llm.url=e.target.value.trim();save()});
+$('s-lkey').addEventListener('change',e=>{DB.settings.llm.key=e.target.value.trim();save()});
+$('s-lmodel').addEventListener('change',e=>{DB.settings.llm.model=e.target.value.trim();save()});
+$('impfile').addEventListener('change',()=>{
+ const f=$('impfile').files[0];if(!f)return;
+ const rd=new FileReader();
+ rd.onload=()=>{
+  try{
+   const d=JSON.parse(rd.result);
+   if(!d||d.v!==1||!Array.isArray(d.devices))throw new Error('bad');
+   DB=d;DB.settings.llm=DB.settings.llm||{url:'',key:'',model:''};save();
+   syncSetUI();renderDevlist();renderTiles();renderChat();refreshWx();
+   toast('Данные импортированы');
+  }catch(e){toast('Ошибка: файл не подходит')}
+ };
+ rd.readAsText(f);$('impfile').value='';
+});
+function doExport(){
+ const blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='jarvis-backup-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(a);a.click();a.remove();toast('Резервная копия сохранена');
+}
+function doReset(){
+ if(!confirm('Полный сброс: удалить все устройства, настройки и историю?'))return;
+ try{localStorage.removeItem(KEY)}catch(e){}
+ stopRec();DB=freshDB();save();syncSetUI();renderDevlist();renderTiles();renderChat();refreshWx();
+ toast('Настройки сброшены');
+}
+document.addEventListener('click',e=>{
+ const el=e.target.closest('[data-act],[data-dev]');
+ if(!el)return;
+ if(el.dataset.dev){const d=devById(el.dataset.dev);if(d){sendDevice(d,'toggle').then(()=>{renderTiles();save()})}return}
+ switch(el.dataset.act){
+  case'close-set':$('m-set').classList.remove('open');break;
+  case'close-dev':$('m-dev').classList.remove('open');break;
+  case'dev-edit':openDevEditor(el.dataset.d);break;
+  case'dev-test':{const d=devById(el.dataset.d);if(d){toast('Отправляю команду…');sendDevice(d,'toggle').then(r=>{toast(r.ok?'Команда отправлена':'Не отвечает — проверьте сеть');save();renderTiles()})}break}
+  case'dev-del':{const d=devById(el.dataset.d);if(d&&confirm('Удалить «'+d.name+'»?')){DB.devices=DB.devices.filter(x=>x.id!==d.id);save();renderDevlist();renderTiles()}break}
+  case'kill-timer':{const id=el.dataset.t;DB.timers=DB.timers.filter(t=>t.id!==id);save();renderTimers();toast('Таймер отменён');break}
+  case'export':doExport();break;
+  case'import':$('impfile').click();break;
+  case'reset':doReset();break;
+ }
+});
+document.querySelectorAll('.mask').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mask.open').forEach(m=>m.classList.remove('open'))});
+
+/* ================= ИНИЦИАЛИЗАЦИЯ ================= */
+loadDB();
+if('speechSynthesis'in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices}
+renderChat();renderTiles();renderTimers();
+clockTick();setInterval(clockTick,1000);
+setInterval(timersTick,1000);
+refreshWx();setInterval(refreshWx,1800000);
+window.__jarvis={think:think,db:()=>DB,sendDevice:sendDevice,processUser:processUser};
+</script>
+</body>
+</html>
